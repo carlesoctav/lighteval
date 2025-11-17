@@ -65,8 +65,8 @@ dependencies = [
     "GitPython>=3.1.41", # for logging
     "datasets>=4.0.0",
     "pydantic",
-    "numpy>=2",  # pinned to avoid incompatibilities
-    "hf-xet>=1.1.8",  # pinned to avoid failing test suite
+    "numpy>=2", # pinned to avoid incompatibilities
+    "hf-xet>=1.1.8", # pinned to avoid failing test suite
     # Prettiness
     "typer>=0.20.0",
     "termcolor==2.3.0",
@@ -101,6 +101,7 @@ nanotron = [
 ]
 tensorboardX = ["tensorboardX"]
 vllm = ["vllm>=0.10.0,<0.10.2", "ray", "more_itertools"]
+vllm-tpu = ["vllm-tpu", "ray", "more_itertools"]
 sglang = ["sglang"]
 quality = ["ruff>=v0.11.0","pre-commit"]
 tests = ["pytest>=7.4.0","deepdiff","pip>=25.2"]

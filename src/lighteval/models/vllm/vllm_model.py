@@ -30,6 +30,7 @@ from typing import Coroutine, Optional
 import torch
 from pydantic import NonNegativeFloat, NonNegativeInt, PositiveInt
 from tqdm import tqdm
+from unittest.mock import Mock
 
 from lighteval.data import GenerativeTaskDataset, LoglikelihoodDataset
 from lighteval.models.abstract_model import LightevalModel, ModelConfig
@@ -44,10 +45,10 @@ from lighteval.utils.imports import is_package_available, requires
 logger = logging.getLogger(__name__)
 
 
-if is_package_available("vllm"):
+if is_package_available("vllm") or is_package_available("vllm-tpu"):
     import ray
     from more_itertools import distribute
-    from vllm import LLM, RequestOutput, SamplingParams
+    from vllm import LLM, RequestOutput, SamplingParams, TokensPrompt
     from vllm.distributed.parallel_state import (
         destroy_distributed_environment,
         destroy_model_parallel,
@@ -128,6 +129,8 @@ class VLLMModelConfig(ModelConfig):
             Subfolder within the model repository. Defaults to None.
         is_async (bool):
             Whether to use the async version of VLLM. Defaults to False.
+        tpu_backend (bool):
+            Whether to load the TPU-specific vLLM backend provided by `vllm-tpu`. Defaults to False.
         override_chat_template (bool):
             If True, we force the model to use a chat template. If alse, we prevent the model from using
             a chat template. If None, we use the default (true if present in the tokenizer, false otherwise)
@@ -179,16 +182,18 @@ class VLLMModelConfig(ModelConfig):
     max_num_batched_tokens: PositiveInt = 2048  # maximum number of tokens per batch
     subfolder: str | None = None
     is_async: bool = False  # Whether to use the async version or sync version of the model
+    tpu_backend: bool = False  # Whether to rely on the TPU-specific vLLM backend.
     override_chat_template: bool = None
 
 
-@requires("vllm")
+@requires("vllm-tpu")
 class VLLMModel(LightevalModel):
     def __init__(
         self,
         config: VLLMModelConfig,
     ):
         """Initializes a HuggingFace `AutoModel` and `AutoTokenizer` for evaluation."""
+        print("automodel")
         self.config = config
         self.use_chat_template = uses_chat_template(
             model_name=config.model_name, override_chat_template=config.override_chat_template
@@ -218,6 +223,7 @@ class VLLMModel(LightevalModel):
 
         # Initialize cache for tokenization and predictions
         self._cache = SampleCache(config)
+        print(f"DEBUGPRINT[7]: vllm_model.py:224: self._cache={self._cache}")
 
     @property
     def tokenizer(self):
@@ -455,7 +461,7 @@ class VLLMModel(LightevalModel):
             ]
         else:
             outputs = self.model.generate(
-                prompt_token_ids=inputs,
+                prompts=[TokensPrompt(prompt_token_ids=input) for input in inputs],
                 sampling_params=sampling_params,
                 use_tqdm=True,
             )
@@ -534,6 +540,13 @@ class VLLMModel(LightevalModel):
     @cached(SamplingMethod.PERPLEXITY)
     def loglikelihood_rolling(self, docs: list[Doc]) -> list[ModelResponse]:
         raise NotImplementedError()
+
+
+class TPUVLLMModel(VLLMModel):
+    """VLLM model that loads the TPU-specific backend provided by `vllm-tpu`."""
+
+    def __init__(self, config: VLLMModelConfig):
+        super().__init__(config)
 
 
 @requires("vllm")

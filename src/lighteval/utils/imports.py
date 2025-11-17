@@ -115,6 +115,7 @@ def raise_if_package_not_available(package: Requirement | Extra, *, language: st
         raise ImportError(prefix + not_installed_error_message(package)[3:])
 
     if not is_package_available(package):
+        print("allo")
         raise ImportError(prefix + not_installed_error_message(package)[3:])
 
 

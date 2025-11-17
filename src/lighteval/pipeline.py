@@ -144,6 +144,7 @@ class Pipeline:
         self.model_config = model_config
         self.accelerator, self.parallel_context = self._init_parallelism_manager()
         self.model = self._init_model(model_config, model)
+        print(f"DEBUGPRINT[8]: pipeline.py:148: self.model={self.model}")
         # Must occur after model and task init
         self.model._cache._init_registry(self.registry)
         # Must occur after model init

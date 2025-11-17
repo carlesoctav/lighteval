@@ -42,7 +42,7 @@ from lighteval.models.transformers.adapter_model import AdapterModel, AdapterMod
 from lighteval.models.transformers.delta_model import DeltaModel, DeltaModelConfig
 from lighteval.models.transformers.transformers_model import TransformersModel, TransformersModelConfig
 from lighteval.models.transformers.vlm_transformers_model import VLMTransformersModel, VLMTransformersModelConfig
-from lighteval.models.vllm.vllm_model import AsyncVLLMModel, VLLMModel, VLLMModelConfig
+from lighteval.models.vllm.vllm_model import AsyncVLLMModel, TPUVLLMModel, VLLMModel, VLLMModelConfig
 
 
 logger = logging.getLogger(__name__)
@@ -147,8 +147,12 @@ def load_model_with_accelerate_or_default(
     elif isinstance(config, DeltaModelConfig):
         model = DeltaModel(config=config)
     elif isinstance(config, VLLMModelConfig):
+        if config.is_async and config.tpu_backend:
+            raise ValueError("TPU backend is not supported with async vLLM models.")
         if config.is_async:
             model = AsyncVLLMModel(config=config)
+        elif config.tpu_backend:
+            model = TPUVLLMModel(config=config)
         else:
             model = VLLMModel(config=config)
     elif isinstance(config, VLMTransformersModelConfig):
